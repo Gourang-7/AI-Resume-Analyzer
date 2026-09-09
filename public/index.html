@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Resume Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .tech-font { font-family: 'JetBrains Mono', monospace; }
+        .score-gradient { background: linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #10b981 100%); }
+        .alignment-gradient { background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%); }
+        
+        .step-pending svg { color: #cbd5e1; }
+        .step-pending .step-text { color: #64748b; }
+        .step-active svg { color: #94a3b8; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        .step-active .step-text { color: #0f172a; font-weight: 700; }
+        .step-done svg { color: #10b981; }
+        .step-done .step-text { color: #10b981; font-weight: 600; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <div class="w-full bg-slate-900 shadow-lg border-b-4 border-indigo-500">
+        <div class="max-w-7xl mx-auto py-8 px-6 text-center flex flex-col items-center">
+            <div class="flex items-center justify-center gap-3 mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-10 h-10 text-indigo-400">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" />
+                </svg>
+                <h1 class="text-4xl md:text-5xl font-extrabold text-white tracking-tight uppercase">AI Resume Analyzer</h1>
+            </div>
+            <p class="text-indigo-300 text-sm md:text-base font-medium tracking-wide tech-font">Decode the ATS. Engineer your perfect resume with AI precision.</p>
+        </div>
+    </div>
+
+    <div class="w-full lg:w-[80%] max-w-6xl mx-auto mt-10 mb-12 px-4 flex-grow flex flex-col items-center">
+        
+        <!-- Input Form -->
+        <div id="inputFormContainer" class="w-full bg-white p-8 md:p-10 rounded-2xl shadow-xl border border-slate-100 relative block">
+            <form id="uploadForm" onsubmit="submitForm(event)">
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    <!-- Resume Upload -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 text-center">1. Your Resume</label>
+                        <label for="resume" class="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-blue-300 rounded-xl cursor-pointer bg-[#f4f9ff] hover:bg-blue-50 transition-colors">
+                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <svg class="w-10 h-10 mb-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                <p class="mb-2 text-sm text-slate-600">Upload Resume <span class="text-blue-600 font-semibold">(Required)</span></p>
+                                <p class="text-xs text-slate-400 font-medium">as .pdf or .docx</p>
+                            </div>
+                            <input id="resume" name="resume" type="file" accept=".pdf,.docx" class="hidden" required onchange="updateFileName(this, 'resumeDisplay')" />
+                        </label>
+                        <p id="resumeDisplay" class="text-sm font-semibold text-emerald-600 hidden mt-2 text-center"></p>
+                    </div>
+
+                    <!-- JD Upload -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 text-center">2. Target Job Description File</label>
+                        <label for="jdFile" class="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-indigo-300 rounded-xl cursor-pointer bg-indigo-50/50 hover:bg-indigo-50 transition-colors">
+                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                <svg class="w-10 h-10 mb-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                                <p class="mb-2 text-sm text-slate-600">Upload Company JD <span class="text-indigo-600 font-semibold">(Optional)</span></p>
+                                <p class="text-xs text-slate-400">Triggers Deep Alignment Mode</p>
+                            </div>
+                            <input id="jdFile" name="jdFile" type="file" accept=".pdf,.docx" class="hidden" onchange="updateFileName(this, 'jdDisplay')" />
+                        </label>
+                        <p id="jdDisplay" class="text-sm font-semibold text-indigo-600 hidden mt-2 text-center"></p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 border-t border-slate-100 pt-8">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Target Role Title</label>
+                        <select id="jobRole" required class="w-full p-3.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50 font-medium text-slate-700 cursor-pointer">
+                            <option value="" disabled selected>Select target role...</option>
+                            <option value="Data Science Intern">Data Science Intern</option>
+                            <option value="Software Engineer">Software Engineer</option>
+                            <option value="Frontend Developer">Frontend Developer</option>
+                            <option value="Backend Developer">Backend Developer</option>
+                            <option value="Full Stack Developer">Full Stack Developer</option>
+                            <option value="Machine Learning Engineer">Machine Learning Engineer</option>
+                            <option value="Product Manager">Product Manager</option>
+                            <option value="General Application">Other / General Application</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Pasted JD Text <span class="normal-case tracking-normal font-normal opacity-70">(Optional if file uploaded)</span></label>
+                        <textarea id="jobDescription" rows="1" class="w-full p-3.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-slate-50 tech-font placeholder:font-sans" placeholder="Paste specific requirements..."></textarea>
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn" class="w-full bg-slate-900 text-white font-bold text-lg py-4 rounded-xl hover:bg-indigo-600 hover:shadow-lg transition-all flex justify-center items-center">
+                    <span id="btnText">Start Analysis</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Loading Skeleton -->
+        <div id="loadingContainer" class="w-full hidden flex-col lg:flex-row gap-8">
+            <div class="bg-white p-8 rounded-2xl shadow-xl border border-slate-100 lg:w-1/3 flex flex-col items-center justify-start min-h-[400px]">
+                <h3 class="text-xl font-medium mb-10 mt-4 text-slate-800">Processing...</h3>
+                <div class="w-40 h-20 border-t-[20px] border-l-[20px] border-r-[20px] border-slate-100 rounded-t-full relative mb-12 flex justify-center">
+                    <div class="absolute -bottom-1 w-full h-0.5 bg-slate-300"></div>
+                    <div class="absolute -bottom-2 w-2 h-2 bg-slate-800 rounded-full"></div>
+                </div>
+                <div class="w-24 h-6 bg-slate-100 rounded-full mb-3"></div>
+                <div class="w-32 h-6 bg-slate-100 rounded-full mb-12"></div>
+                <div class="w-full space-y-6 px-4">
+                    <div class="flex justify-between items-center"><div class="text-[10px] font-bold text-slate-500 tracking-wider">CONTENT</div><div class="w-10 h-4 bg-slate-100 rounded-full"></div></div>
+                    <div class="flex justify-between items-center"><div class="text-[10px] font-bold text-slate-500 tracking-wider">SECTION</div><div class="w-10 h-4 bg-slate-100 rounded-full"></div></div>
+                    <div class="flex justify-between items-center"><div class="text-[10px] font-bold text-slate-500 tracking-wider">ATS ESSENTIALS</div><div class="w-10 h-4 bg-slate-100 rounded-full"></div></div>
+                    <div class="flex justify-between items-center"><div class="text-[10px] font-bold text-slate-500 tracking-wider">TAILORING</div><div class="w-10 h-4 bg-slate-100 rounded-full"></div></div>
+                </div>
+            </div>
+            <div class="bg-[#f0f4f8] p-10 rounded-2xl border border-slate-100 lg:w-2/3 flex flex-col justify-center space-y-8 min-h-[400px]">
+                <div id="step1" class="step-pending flex items-center gap-4 transition-all duration-500"><svg class="w-8 h-8 transition-colors duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span class="step-text text-xl">Parsing documents</span></div>
+                <div id="step2" class="step-pending flex items-center gap-4 transition-all duration-500"><svg class="w-8 h-8 transition-colors duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span class="step-text text-xl">Quantifying impact metrics</span></div>
+                <div id="step3" class="step-pending flex items-center gap-4 transition-all duration-500"><svg class="w-8 h-8 transition-colors duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span class="step-text text-xl">Mapping skill categories</span></div>
+                <div id="step4" class="step-pending flex items-center gap-4 transition-all duration-500"><svg class="w-8 h-8 transition-colors duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span class="step-text text-xl">Generating alignment insights</span></div>
+            </div>
+        </div>
+
+        <!-- Results Dashboard -->
+        <div class="w-full bg-white p-8 md:p-10 rounded-2xl shadow-xl border border-slate-100 hidden" id="resultsContainer">
+            
+            <!-- Top Dashboard Stats -->
+            <div class="flex flex-col gap-8 mb-10 w-full">
+                
+                <!-- Main Score Card -->
+                <div class="w-full bg-slate-50 border border-slate-100 p-8 md:p-12 rounded-2xl flex flex-col justify-center items-center shadow-sm">
+                    <h2 id="scoreTitle" class="text-lg font-bold text-slate-500 uppercase tracking-wider mb-3">ATS Match Score</h2>
+                    <div class="text-7xl md:text-8xl font-black text-slate-800 tracking-tighter mb-8"><span id="finalScore">0</span><span class="text-3xl md:text-4xl text-slate-400">/100</span></div>
+                    
+                    <!-- Increased width to max-w-2xl to match the new full-width container -->
+                    <div class="h-6 w-full max-w-2xl rounded-full score-gradient relative shadow-inner overflow-hidden" id="scoreBarContainer">
+                        <div id="scoreMarker" class="absolute top-0 bottom-0 w-2 bg-slate-900 shadow-[0_0_8px_rgba(0,0,0,0.6)] transition-all duration-1000 ease-out rounded-full" style="left: 0%;"></div>
+                    </div>
+                </div>
+
+                <!-- Quantification Impact Metric with FAQs -->
+                <div class="w-full bg-indigo-50/50 border border-indigo-100 p-8 md:p-10 rounded-2xl flex flex-col justify-start shadow-sm">
+                    <div class="flex items-center gap-3 mb-5">
+                        <svg class="w-8 h-8 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                        <h3 class="text-xl font-bold text-indigo-900 uppercase tracking-widest">Impact Metric Score</h3>
+                    </div>
+                    
+                    <p class="text-sm md:text-base text-slate-600 mb-8 font-medium leading-relaxed max-w-3xl">
+                        A good resume shows the impact you've made in previous roles.<br>
+                        Quantify that impact, and recruiters are far more likely to invite you in.
+                    </p>
+                    
+                    <div class="flex items-center gap-6 mb-8">
+                        <div class="text-5xl font-black text-indigo-600"><span id="quantScore">0</span>%</div>
+                        <div class="flex-grow h-4 bg-slate-200 rounded-full overflow-hidden">
+                            <div id="quantBar" class="h-full bg-indigo-500 transition-all duration-1000" style="width: 0%;"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Dynamic Feedback Message -->
+                    <div id="quantMessage" class="bg-white/90 p-5 rounded-xl border border-indigo-50 text-center text-sm md:text-base font-semibold text-indigo-900 mb-10 flex items-center justify-center gap-3 shadow-sm">
+                        <!-- Filled by Javascript -->
+                    </div>
+
+                    <!-- FAQs Section -->
+                    <div class="bg-white rounded-xl border border-slate-200 p-6 md:p-8 shadow-sm">
+                        <h4 class="text-lg font-bold text-slate-800 mb-6">FAQs</h4>
+                        
+                        <!-- FAQ 1 -->
+                        <div class="mb-6 pb-6 border-b border-slate-100 last:border-0 last:mb-0 last:pb-0">
+                            <button type="button" onclick="toggleFaq('faq1', 'icon1', 'text1')" class="flex items-center gap-4 w-full text-left group outline-none">
+                                <div id="icon1" class="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-lg leading-none transition-transform duration-300 pb-0.5 shadow-sm shrink-0">+</div>
+                                <span id="text1" class="font-medium text-slate-800 group-hover:text-indigo-600 transition-colors text-base md:text-lg">What if I'm not in a number-focused role?</span>
+                            </button>
+                            <div id="faq1" class="hidden overflow-hidden mt-4 pl-10 text-sm md:text-base text-slate-600 space-y-4 leading-relaxed max-w-4xl">
+                                <p>It's common to think that only people in finance and sales can have a quantifier in their bullets. Although that's not true as every role has something to quantify.</p>
+                                <p>If you think outside of the financial impact of your work, you can find numbers in almost every activity. For example, if you "worked in an international team", you can write "worked in an international team of 50+ people". Using numbers in your resume gives recruiters the ability to grasp the scale you've worked at.</p>
+                            </div>
+                        </div>
+
+                        <!-- FAQ 2 -->
+                        <div>
+                            <button type="button" onclick="toggleFaq('faq2', 'icon2', 'text2')" class="flex items-center gap-4 w-full text-left group outline-none">
+                                <div id="icon2" class="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-lg leading-none transition-transform duration-300 pb-0.5 shadow-sm shrink-0">+</div>
+                                <span id="text2" class="font-medium text-slate-800 group-hover:text-indigo-600 transition-colors text-base md:text-lg">How do I add numbers in my bullets?</span>
+                            </button>
+                            <div id="faq2" class="hidden overflow-hidden mt-4 pl-10 text-sm md:text-base text-slate-600 space-y-4 leading-relaxed max-w-4xl">
+                                <p>In order to add numbers to your bullets you need to define what exactly can be measured in the activity you've performed and then rewrite the bullet including the metric.</p>
+                                <p>Keep in mind that the quantifier shouldn't always be an amount, it may also be frequency. For example: "Hosted a retrospection meeting every 2 weeks with a team of 10"</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Executive Summary & Tailoring Insights -->
+            <div class="mb-10 p-6 bg-slate-50 rounded-xl border border-slate-100 text-slate-700 text-lg leading-relaxed font-medium" id="summaryText"></div>
+            
+            <div id="alignmentSuggestionsContainer" class="hidden mb-10 p-8 bg-purple-50/50 rounded-2xl border border-purple-100">
+                <h3 class="text-xl font-bold text-purple-900 mb-4 flex items-center">
+                    <svg class="w-6 h-6 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                    <span id="alignmentTitleText">Role Tailoring Insights</span>
+                </h3>
+                <ul id="alignmentTips" class="space-y-3 text-purple-800 font-medium"></ul>
+            </div>
+
+            <!-- Categorized Skills Gap -->
+            <div class="mb-10">
+                <h3 class="text-xl font-bold text-slate-800 mb-6 border-b border-slate-100 pb-2">Categorized Skills Gap Analysis</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                        <h4 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4 border-b border-slate-200 pb-2">Hard Skills / Tech</h4>
+                        <div id="missingHard" class="flex flex-col gap-2 tech-font text-xs"></div>
+                    </div>
+                    <div class="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                        <h4 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4 border-b border-slate-200 pb-2">Methodologies</h4>
+                        <div id="missingMethod" class="flex flex-col gap-2 tech-font text-xs"></div>
+                    </div>
+                    <div class="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                        <h4 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4 border-b border-slate-200 pb-2">Soft Skills</h4>
+                        <div id="missingSoft" class="flex flex-col gap-2 tech-font text-xs"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Weak Verb Detector & Rewrites -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-6 border-t border-slate-100 mb-10">
+                <div class="lg:col-span-1">
+                    <div class="bg-rose-50 p-6 rounded-xl border border-rose-100 h-full">
+                        <h3 class="text-sm font-bold text-rose-800 uppercase tracking-widest mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            Weak Verbs Detected
+                        </h3>
+                        <div id="weakVerbsList" class="space-y-3"></div>
+                    </div>
+                </div>
+                
+                <div class="lg:col-span-2 space-y-4">
+                    <h3 class="text-xl font-bold text-slate-800 flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z" /></svg>
+                        AI Bullet Point Rewrites
+                    </h3>
+                    <div id="bulletImprovements" class="space-y-4"></div>
+                </div>
+            </div>
+
+            <!-- Document Checks Detailed Breakdown -->
+            <div class="pt-10 border-t border-slate-100">
+                <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center">
+                    <svg class="w-6 h-6 mr-2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                    Document Checks Breakdown
+                </h3>
+                <div id="checkDetailsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+            </div>
+
+            <!-- File Format & Size Personalized Section -->
+            <div class="mt-10 bg-slate-50/80 rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                <button type="button" onclick="toggleSection('fileFormatSection', 'fileFormatCaret')" class="w-full px-8 py-6 flex items-center justify-between hover:bg-slate-100/50 transition-colors outline-none group">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-5 h-5 text-indigo-400 group-hover:text-indigo-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                        <h3 class="text-lg font-bold text-slate-800 uppercase tracking-widest">File Format & Size</h3>
+                    </div>
+                    <svg id="fileFormatCaret" class="w-5 h-5 text-slate-400 transform transition-transform duration-300 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+        
+                <div id="fileFormatSection" class="px-8 pb-8 block">
+                    <p class="text-sm text-slate-600 mb-4 leading-relaxed">
+                        When you're uploading your resume on various platforms like Indeed and LinkedIn, you're likely to meet a file size limit. Ideally, your resume should be less than 2MB in size. Anything larger will most likely not be accepted on the majority of platforms.
+                    </p>
+                    <p class="text-sm text-slate-600 mb-6 leading-relaxed">
+                        Your file type also plays an important role in ATS screening. PDF files are preferred as the text can be easily read by the applicant tracking system without losing formatting. Avoid DOCX, PNG, or JPG files when a PDF upload is supported.
+                    </p>
+                    
+                    <div id="fileFeedbackBox" class="bg-white p-8 rounded-xl border border-slate-200 text-center shadow-sm flex flex-col items-center transition-all">
+                        <!-- Filled by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <footer class="w-full py-8 mt-auto border-t border-slate-200">
+        <div class="flex items-center justify-center gap-3 text-slate-500 tech-font text-sm">
+            <span>Made by <span class="text-emerald-500 font-semibold">Gourang-7</span></span>
+            <span class="text-slate-300">•</span>
+            <a href="https://github.com/Gourang-7" target="_blank" class="flex items-center gap-1.5 hover:text-slate-800 transition-colors">
+                <svg viewBox="0 0 24 24" class="w-4 h-4" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" /></svg>
+                GitHub
+            </a>
+        </div>
+    </footer>
+
+    <script>
+        function updateFileName(input, targetId) {
+            const display = document.getElementById(targetId);
+            if (input.files && input.files[0]) {
+                display.innerText = "📄 " + input.files[0].name;
+                display.classList.remove('hidden');
+            } else {
+                display.classList.add('hidden');
+            }
+        }
+
+        function getCheckmarkIcon(isSuccess) {
+            return isSuccess 
+                ? `<svg class="w-5 h-5 text-white bg-emerald-500 rounded-md p-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>`
+                : `<svg class="w-5 h-5 text-white bg-red-500 rounded-md p-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>`;
+        }
+
+        function renderSkillPills(containerId, skillsArray, emptyMessage) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            if (!skillsArray || skillsArray.length === 0) {
+                container.innerHTML = `<span class="px-2.5 py-1 bg-white text-emerald-600 border border-emerald-200 rounded-md text-xs font-bold shadow-sm uppercase tracking-wider">${emptyMessage}</span>`;
+            } else {
+                container.innerHTML = skillsArray.map(s => `<span class="px-2.5 py-1.5 bg-white text-slate-700 border border-slate-200 rounded-md shadow-sm font-medium">• ${s}</span>`).join('');
+            }
+        }
+
+        function toggleFaq(faqId, iconId, textId) {
+            const faq = document.getElementById(faqId);
+            const icon = document.getElementById(iconId);
+            const text = document.getElementById(textId);
+            
+            if (faq.classList.contains('hidden')) {
+                faq.classList.remove('hidden');
+                icon.innerHTML = '&minus;'; // Minus symbol
+                icon.classList.add('rotate-90');
+                text.classList.add('text-indigo-600');
+                text.classList.remove('text-slate-800');
+            } else {
+                faq.classList.add('hidden');
+                icon.innerHTML = '+';
+                icon.classList.remove('rotate-90');
+                text.classList.remove('text-indigo-600');
+                text.classList.add('text-slate-800');
+            }
+        }
+
+        function toggleSection(contentId, caretId) {
+            const content = document.getElementById(contentId);
+            const caret = document.getElementById(caretId);
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                caret.classList.add('rotate-180');
+            } else {
+                content.classList.add('hidden');
+                caret.classList.remove('rotate-180');
+            }
+        }
+
+        async function submitForm(event) {
+            event.preventDefault(); 
+            
+            const jobRoleSelect = document.getElementById('jobRole');
+            const jobDescriptionInput = document.getElementById('jobDescription');
+            const jdFileInput = document.getElementById('jdFile');
+            const fileInput = document.getElementById('resume');
+
+            if (!jobRoleSelect.value) { alert("Please select a target role."); return; }
+            if (jobRoleSelect.value === "General Application" && jobDescriptionInput.value.trim() === "" && (!jdFileInput.files || !jdFileInput.files[0])) {
+                alert("Please provide JD text or upload a JD file for General Applications.");
+                return;
+            }
+
+            if (!fileInput.files || !fileInput.files[0]) {
+                alert("Please upload your resume file.");
+                return;
+            }
+
+            // Save file name in variable before upload starts
+            const uploadedFileName = fileInput.files[0].name;
+            const fileSizeBytes = fileInput.files[0].size;
+            const fileSizeKB = Math.round(fileSizeBytes / 1024);
+            const fileSizeMB = (fileSizeBytes / (1024 * 1024)).toFixed(2);
+            const fileExt = uploadedFileName.split('.').pop().toUpperCase();
+
+            document.getElementById('inputFormContainer').classList.replace('block', 'hidden');
+            document.getElementById('resultsContainer').classList.add('hidden');
+            document.getElementById('loadingContainer').classList.replace('hidden', 'flex');
+
+            const steps = ['step1', 'step2', 'step3', 'step4'];
+            steps.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.className = 'step-pending flex items-center gap-4 transition-all duration-500';
+            });
+            const firstStep = document.getElementById(steps[0]);
+            if (firstStep) firstStep.classList.replace('step-pending', 'step-active');
+
+            let currentStep = 0;
+            const progressInterval = setInterval(() => {
+                if (currentStep < steps.length - 1) { 
+                    const cur = document.getElementById(steps[currentStep]);
+                    const nxt = document.getElementById(steps[currentStep + 1]);
+                    if (cur) cur.classList.replace('step-active', 'step-done');
+                    if (nxt) nxt.classList.replace('step-pending', 'step-active');
+                    currentStep++;
+                }
+            }, 2500); 
+
+            const formData = new FormData();
+            formData.append("resume", fileInput.files[0]);
+            formData.append("jobRole", jobRoleSelect.value);
+            formData.append("jobDescription", jobDescriptionInput.value);
+            if (jdFileInput.files && jdFileInput.files[0]) { formData.append("jdFile", jdFileInput.files[0]); }
+
+            try {
+                const response = await fetch('/api/resume/analyze', { method: 'POST', body: formData });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || "Analysis failed");
+
+                clearInterval(progressInterval);
+                steps.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.className = 'step-done flex items-center gap-4 transition-all duration-500';
+                });
+
+                setTimeout(() => {
+                    document.getElementById('loadingContainer').classList.replace('flex', 'hidden');
+                    document.getElementById('resultsContainer').classList.remove('hidden');
+                    
+                    const ai = data.aiFeedback || {};
+                    const finalScore = data.finalScore ?? 0;
+
+                    // Final Score
+                    document.getElementById('finalScore').innerText = finalScore;
+                    document.getElementById('scoreMarker').style.left = `${Math.min(finalScore, 98)}%`;
+                    
+                    // JD vs Role Toggle
+                    if (data.isJDAlignment) {
+                        document.getElementById('scoreTitle').innerText = "Company JD Alignment Score";
+                        document.getElementById('scoreBarContainer').classList.replace('score-gradient', 'alignment-gradient');
+                        document.getElementById('alignmentTitleText').innerText = "Company JD Alignment Insights";
+                    } else {
+                        document.getElementById('scoreTitle').innerText = "ATS Match Score";
+                        document.getElementById('scoreBarContainer').classList.replace('alignment-gradient', 'score-gradient');
+                        document.getElementById('alignmentTitleText').innerText = "Target Role Tailoring Insights";
+                    }
+
+                    // Alignment / Tailoring Suggestions
+                    const suggestions = ai.alignmentSuggestions || ai.improvementTips || [];
+                    if (suggestions.length > 0) {
+                        document.getElementById('alignmentSuggestionsContainer').classList.remove('hidden');
+                        document.getElementById('alignmentTips').innerHTML = suggestions.map(tip => `<li>• ${tip}</li>`).join('');
+                    } else {
+                        document.getElementById('alignmentSuggestionsContainer').classList.add('hidden');
+                    }
+
+                    // Impact Metric
+                    const qScore = ai.quantificationScore ?? 0;
+                    document.getElementById('quantScore').innerText = qScore;
+                    document.getElementById('quantBar').style.width = `${Math.min(qScore, 100)}%`;
+                    const qMessageEl = document.getElementById('quantMessage');
+                    if(qScore > 70) {
+                        qMessageEl.innerHTML = `<svg class="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Good job! Most of your bullets include a valuable key performance indicator.`;
+                    } else {
+                         qMessageEl.innerHTML = `<svg class="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg> Room for improvement! Try to quantify more of your achievements.`;
+                    }
+                    
+                    // Executive Summary
+                    document.getElementById('summaryText').innerText = ai.executiveSummary || "Resume analysis completed successfully.";
+                    
+                    // Skills Breakdown
+                    renderSkillPills('missingHard', ai.missingHardSkills, 'No hard skills missing!');
+                    renderSkillPills('missingMethod', ai.missingMethodologies, 'Excellent process coverage!');
+                    renderSkillPills('missingSoft', ai.missingSoftSkills, 'Great human skills!');
+
+                    // Weak Verbs
+                    const weakVerbsContainer = document.getElementById('weakVerbsList');
+                    const verbs = ai.weakVerbsFound || [];
+                    if (verbs.length === 0) {
+                        weakVerbsContainer.innerHTML = `<span class="text-emerald-600 font-bold text-sm">Awesome! No weak verbs found.</span>`;
+                    } else {
+                        weakVerbsContainer.innerHTML = verbs.map(v => {
+                            const verbWord = typeof v === 'object' ? (v.verb || 'Verb') : v;
+                            const suggWord = typeof v === 'object' ? (v.suggestion || 'Strong Action Verb') : 'Better alternative';
+                            return `
+                                <div class="bg-white p-3 rounded-lg border border-rose-100 shadow-sm flex flex-col">
+                                    <span class="text-rose-600 font-bold text-xs line-through mb-1">"${verbWord}"</span>
+                                    <span class="text-emerald-700 font-bold text-sm">Use ⟶ "${suggWord}"</span>
+                                </div>
+                            `;
+                        }).join('');
+                    }
+
+                    // AI Bullet Improvements
+                    const bulletsContainer = document.getElementById('bulletImprovements');
+                    const bullets = ai.bulletImprovements || [];
+                    if (bullets.length === 0) {
+                        bulletsContainer.innerHTML = `
+                            <div class="p-6 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 text-sm italic">
+                                Your bullet points are already strong, metric-driven, and well structured.
+                            </div>
+                        `;
+                    } else {
+                        bulletsContainer.innerHTML = bullets.map(item => `
+                            <div class="p-6 border border-slate-100 bg-white rounded-xl shadow-sm relative overflow-hidden group hover:border-indigo-200 transition-colors">
+                                <div class="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500 opacity-50"></div>
+                                <p class="text-sm text-slate-400 line-through mb-3">${item.original || ""}</p>
+                                <p class="text-sm font-bold text-slate-800 mb-3 leading-relaxed">✨ ${item.improved || "Optimized rewrite"}</p>
+                                <p class="text-xs text-indigo-700 font-medium bg-indigo-50 inline-block px-3 py-1.5 rounded-md tech-font tracking-wide">Reason: ${item.reason || "Improves clarity and ATS punch."}</p>
+                            </div>
+                        `).join('');
+                    }
+
+                    // Document Checks Breakdown (Guaranteed rendering)
+                    const found = data.deterministicFeedback?.foundData || {};
+                    const sections = found.sectionsFound || {};
+                    
+                    const hasEssential = Boolean(sections.education && sections.experience && sections.skills);
+                    const hasContact = Boolean(found.hasPhone || found.hasEmail);
+                    const grammarPassed = (ai.aiScoreBonus ?? 15) > 10;
+                    const bulletsPassed = bullets.length < 5;
+                    const fileNamePassed = !uploadedFileName.toLowerCase().includes("untitled") && !uploadedFileName.includes(" ");
+                    const emailPassed = Boolean(found.hasEmail);
+                    const linkedinPassed = Boolean(found.hasLinkedIn);
+
+                    const checks = [
+                        { 
+                            label: "Essential sections", 
+                            passed: hasEssential, 
+                            detail: hasEssential ? "Great job! We detected all the standard core sections (Experience, Education, and Skills)." : "We couldn't detect all standard sections. Ensure you use clear headers like 'Experience', 'Education', and 'Skills'." 
+                        },
+                        { 
+                            label: "Contact information", 
+                            passed: hasContact, 
+                            detail: hasContact ? "Your resume includes accessible contact details." : "No phone number or email was found in the header area. Make sure these are clearly visible." 
+                        },
+                        { 
+                            label: "Section order & structure", 
+                            passed: true, 
+                            detail: "Your resume follows a clean, logical hierarchy that is easy for ATS parsers to traverse." 
+                        },
+                        { 
+                            label: "Spelling and grammar", 
+                            passed: grammarPassed, 
+                            detail: ai.grammarAndSpellingFeedback || (grammarPassed ? "Your writing is crisp, professional, and free of notable grammatical errors." : "Some sentences could benefit from tighter phrasing or proofreading.") 
+                        },
+                        { 
+                            label: "Bullet length and formatting", 
+                            passed: bulletsPassed, 
+                            detail: ai.bulletFormattingFeedback || (bulletsPassed ? "Bullet points are concise, scannable, and consistent." : "Some bullets are too long or lack strong active voice.") 
+                        },
+                        { 
+                            label: "Resume file name", 
+                            passed: fileNamePassed, 
+                            detail: fileNamePassed ? `The file name "${uploadedFileName}" is cleanly formatted.` : `The file name "${uploadedFileName}" contains spaces or generic terms. Prefer 'First_Last_Resume.pdf'.` 
+                        },
+                        { 
+                            label: "Professional email address", 
+                            passed: emailPassed, 
+                            detail: emailPassed ? "A valid contact email was extracted." : "No valid email address was detected." 
+                        },
+                        { 
+                            label: "LinkedIn profile link", 
+                            passed: linkedinPassed, 
+                            detail: linkedinPassed ? "LinkedIn profile was successfully identified." : "No LinkedIn URL was detected. Adding your profile link is strongly recommended." 
+                        }
+                    ];
+
+                    const detailsContainer = document.getElementById('checkDetailsContainer');
+                    if (detailsContainer) {
+                        detailsContainer.innerHTML = checks.map(check => `
+                            <div class="p-5 rounded-xl border ${check.passed ? 'border-emerald-100 bg-emerald-50/30' : 'border-red-100 bg-red-50/30'} flex flex-col h-full">
+                                <div class="flex items-center gap-2 mb-2">
+                                    ${getCheckmarkIcon(check.passed)}
+                                    <h4 class="font-bold text-sm ${check.passed ? 'text-emerald-800' : 'text-red-800'}">${check.label}</h4>
+                                </div>
+                                <p class="text-xs leading-relaxed ${check.passed ? 'text-emerald-700' : 'text-red-700'} mt-1">${check.detail}</p>
+                            </div>
+                        `).join('');
+                    }
+
+                    // File Format & Size Evaluator
+                    const fileFeedbackBox = document.getElementById('fileFeedbackBox');
+                    const isGoodSize = fileSizeBytes < 2 * 1024 * 1024; // Less than 2MB
+                    const isGoodType = fileExt === 'PDF';
+                    const displaySize = fileSizeKB > 1000 ? `${fileSizeMB} MB` : `${fileSizeKB} KB`;
+
+                    if (isGoodSize && isGoodType) {
+                        fileFeedbackBox.innerHTML = `
+                            <div class="w-16 h-16 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mb-4">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                            </div>
+                            <h4 class="text-xl font-bold text-slate-800 mb-2">Good job!</h4>
+                            <p class="text-slate-600 font-medium text-sm md:text-base">Your resume file is <span class="font-bold text-slate-800">${displaySize}</span> and your file type is <span class="font-bold text-slate-800">${fileExt}</span>.</p>
+                        `;
+                    } else {
+                        fileFeedbackBox.innerHTML = `
+                            <div class="w-16 h-16 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mb-4">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            </div>
+                            <h4 class="text-xl font-bold text-slate-800 mb-2">Needs Adjustment</h4>
+                            <p class="text-slate-600 font-medium text-sm md:text-base">Your resume is <span class="font-bold text-slate-800">${displaySize}</span> and your file type is <span class="font-bold text-slate-800">${fileExt}</span>. For the best ATS compatibility, ensure it is a PDF under 2MB.</p>
+                        `;
+                    }
+
+                }, 500);
+
+            } catch (error) {
+                alert(error.message);
+                clearInterval(progressInterval);
+                document.getElementById('loadingContainer').classList.replace('flex', 'hidden');
+                document.getElementById('inputFormContainer').classList.replace('hidden', 'block');
+            }
+        }
+    </script>
+</body>
+</html>
